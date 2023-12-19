@@ -27,7 +27,7 @@ def compute_samples_tab(submission_id, dataset_idx, dataset_name, datasets_metad
     working_dir = st.session_state['working_dir']
     samples_tab, assays_tab, ms_runs_tab = st.tabs(["Samples", "Assays", "MS Runs"])
     with samples_tab:
-        compute_samples_form(dataset_idx, datasets_metadata, working_dir)
+        compute_samples_form(dataset_idx, dataset_name, datasets_metadata, working_dir)
     with assays_tab:
         compute_assays_form(dataset_idx, datasets_metadata, working_dir)
     with ms_runs_tab:

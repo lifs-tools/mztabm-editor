@@ -7,6 +7,8 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 
+from editor.ols_lookup import OLSLookup
+
 st.set_page_config(
     layout="wide", 
     page_title="LipidCompass Submission Editor", 
@@ -39,6 +41,8 @@ if 'cv_config' not in st.session_state:
         data = f.read()
     config = json.loads(data)
     st.session_state.cv_config = config
+    ols_lookup = OLSLookup(config['ontologies'], config['static_cv_terms'])
+    st.session_state.ols_lookup = ols_lookup
 
 tmp_dir = tempfile.gettempdir()
 working_dir = os.path.join(tmp_dir, "lipidcompass", submission_id)

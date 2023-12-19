@@ -22,4 +22,4 @@ Since Streamlit reevaluates the whole script from top to bottom on every change 
 
 ## The ebi-ols-client currently does not install without issues
 
-    pip install streamlit ebi-ols-client
+    pip install streamlit ols-client

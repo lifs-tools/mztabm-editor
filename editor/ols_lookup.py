@@ -1,38 +1,37 @@
-#from ebi.ols.api.client import OlsClient
-import json
 from typing import List
 import functools
-
-import streamlit as st
+from ols_client.client import Client, EBIClient
+import json
 
 class OLSLookup:
     def __init__(self, ontologies, static_cv_terms):
-        self.staticCvTerms = static_cv_terms
-
-        assert len(self.staticCvTerms) == len(static_cv_terms), "number of static CV terms does not match!"
-        #self.client = OlsClient()
+        self.static_cv_terms = static_cv_terms
+        assert len(self.static_cv_terms) == len(static_cv_terms), "number of static CV terms does not match!"
+        self.client = EBIClient()
         self.ontologies = {}
-        for ontologyKey in ontologies:
-            self.ontologies[ontologyKey] = self.client.ontology(ontologies[ontologyKey])
+        for ontology_key in ontologies:
+            self.ontologies[ontology_key] = self.client.get_ontology(ontologies[ontology_key])
 
         assert len(self.ontologies) == len(ontologies), "number of ontologies does not match!"
 
 # using functools.cache to cache the results of the function, since every call to .terms is a network call
     @functools.cache
-    def resolve_ontology_term_name(self, ontologyKey, term_obo_id):
-        if ontologyKey not in self.ontologies:
+    def resolve_ontology_term_name(self, ontology_key, term_obo_id):
+        if ontology_key not in self.ontologies:
             return None
         
-        if term_obo_id in self.staticCvTerms:
-            return self.staticCvTerms[term_obo_id]["name"]
+        if term_obo_id in self.static_cv_terms:
+            return self.static_cv_terms[term_obo_id]["name"]
 
-        terms = self.ontologies[ontologyKey].terms(filters={'obo_id': term_obo_id})
-        
+        terms = self.ontologies[ontology_key].terms(filters={'obo_id': term_obo_id})
+        print(terms)
         if len(terms) == 1:
             return terms[0].name
         return None
     
     def search_term(self, ontology_keys: List[str], term_name: str) -> List[any]:
+        response = self.client.suggest(query = term_name, ontology = ontology_keys)
+        print(response)
         # return wikipedia.search(searchterm) if searchterm else []
         # for ontologyKey in ontology_keys:
         #     terms = self.ontologies[ontologyKey].terms(filters={'name': term_name})
@@ -49,13 +48,13 @@ class OLSLookup:
     #     return terms
 
     def resolve_term_name(self, term_obo_id):
-        ontologyKey = term_obo_id.split(":")[0]
-        return self.resolve_ontology_term_name(ontologyKey, term_obo_id)
+        ontology_key = term_obo_id.split(":")[0]
+        return self.resolve_ontology_term_name(ontology_key, term_obo_id)
 
     def resolve_term(self, term_obo_id, value=""):
-        ontologyKey = term_obo_id.split(":")[0]
-        if ontologyKey in self.ontologies:
-            return self.resolve_ontology_term(ontologyKey, term_obo_id, value)
+        ontology_key = term_obo_id.split(":")[0]
+        if ontology_key in self.ontologies:
+            return self.resolve_ontology_term(ontology_key, term_obo_id, value)
         return None
 
     def quote_term_name(self, term_name):
@@ -65,23 +64,23 @@ class OLSLookup:
 
     # using functools.cache to cache the results of the function, since every call to .terms is a network call
     @functools.cache
-    def resolve_ontology_term(self, ontologyKey, term_obo_id, term_value=""):
-        if ontologyKey not in self.ontologies:
+    def resolve_ontology_term(self, ontology_key, term_obo_id, term_value=""):
+        if ontology_key not in self.ontologies:
             return None
         
-        if term_obo_id in self.staticCvTerms:
-            value = self.staticCvTerms[term_obo_id]["value"]
-            if value == None:
+        if term_obo_id in self.static_cv_terms:
+            value = self.static_cv_terms[term_obo_id]["value"]
+            if value is None:
                 value = ""
-            return f"[{self.staticCvTerms[term_obo_id]['cv']}, {self.staticCvTerms[term_obo_id]['term_obo_id']}, {self.staticCvTerms[term_obo_id]['name']}, {value}]"
+            return f"[{self.static_cv_terms[term_obo_id]['cv']}, {self.static_cv_terms[term_obo_id]['term_obo_id']}, {self.static_cv_terms[term_obo_id]['name']}, {value}]"
 
-        terms = self.ontologies[ontologyKey].terms(filters={'obo_id': term_obo_id})
+        terms = self.ontologies[ontology_key].terms(filters={'obo_id': term_obo_id})
         
         if len(terms) == 1:
-            quotedName = terms[0].name
+            quoted_name = terms[0].name
             if "," in terms[0].name:
-                quotedName = f"\"{quotedName}\""
-            return f"[{self.ontologies[ontologyKey].namespace.upper()}, {term_obo_id}, {quotedName}, {term_value}]"
+                quoted_name = f"\"{quoted_name}\""
+            return f"[{self.ontologies[ontology_key].namespace.upper()}, {term_obo_id}, {quoted_name}, {term_value}]"
         return None
 
 #@st.cache_resource()
