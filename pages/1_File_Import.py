@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+from mitosheet.streamlit.v1 import spreadsheet
 # import numpy as np
 
 st.set_page_config(
@@ -56,6 +57,7 @@ if 'uploaded_file' in st.session_state and st.session_state['uploaded_file'] is 
             with columnsMetricColumn:
                 st.metric('Columns', datasets[sheet_selector].shape[1])
             st.write(datasets[sheet_selector])
+            dfs, _ = spreadsheet(datasets[sheet_selector], df_names=sheet_selector)
 
         st.markdown("## Select Sheets as Datasets")
         selected_sheets = st.multiselect(

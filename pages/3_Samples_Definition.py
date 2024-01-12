@@ -23,15 +23,21 @@ if 'cv_config' in st.session_state:
     #ols_lookup = ols_lookup(st.session_state.cv_config['ontologies'], st.session_state.cv_config['static_cv_terms'])
 # mzTabm = MzTabM()
 
-def compute_samples_tab(submission_id, dataset_idx, dataset_name, datasets_metadata):
+def compute_samples_tab(submission_id, dataset, dataset_idx, dataset_name, datasets_metadata):
     working_dir = st.session_state['working_dir']
     samples_tab, assays_tab, ms_runs_tab = st.tabs(["Samples", "Assays", "MS Runs"])
     with samples_tab:
-        compute_samples_form(dataset_idx, dataset_name, datasets_metadata, working_dir)
+        compute_samples_form(
+            dataset=dataset, 
+            dataset_idx=dataset_idx,
+            dataset_name=dataset_name,
+            datasets_metadata=datasets_metadata,
+            working_dir=working_dir
+        )
     with assays_tab:
-        compute_assays_form(dataset_idx, datasets_metadata, working_dir)
+        compute_assays_form(dataset, dataset_idx, datasets_metadata, working_dir)
     with ms_runs_tab:
-        compute_ms_runs_form(dataset_idx, datasets_metadata, working_dir)
+        compute_ms_runs_form(dataset, dataset_idx, datasets_metadata, working_dir)
     
 submission_id = None
 if 'submission_id' in st.session_state:
@@ -62,14 +68,15 @@ else:
     st.session_state['datasets_metadata'] = datasets_metadata
 #mztabid,mztabversion,title,description
 st.markdown(samples_selected_sheet)
-if samples_selected_sheet != None and samples_selected_sheet in selected_sheets:    
+if samples_selected_sheet is not None and samples_selected_sheet in selected_sheets:    
     idx = selected_sheets.index(samples_selected_sheet)
     idx += 1
     if samples_selected_sheet not in datasets_metadata:
         datasets_metadata[samples_selected_sheet] = {}
     compute_samples_tab(
-        dataset_idx=idx, 
-        dataset_name=samples_selected_sheet, 
         submission_id=submission_id, 
+        dataset=st.session_state["datasets"][samples_selected_sheet],
+        dataset_idx=idx,
+        dataset_name=samples_selected_sheet, 
         datasets_metadata=datasets_metadata
     )

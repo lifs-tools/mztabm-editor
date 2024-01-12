@@ -12,6 +12,12 @@ def set_global_samples():
     
     st.session_state.use_global_samples = st.session_state.use_global_samples
 
+def getcol(data_frame, column_name, default_value=[]):
+    if column_name in data_frame:
+        return data_frame[column_name].apply(lambda x: x.split("|"))
+    else:
+        return default_value
+
 def convert_iri_to_obo_id(response, iri_field=None, fallback_field=None):
     if response is None:
         return fallback_field
@@ -19,7 +25,7 @@ def convert_iri_to_obo_id(response, iri_field=None, fallback_field=None):
         return fallback_field
     return response[iri_field].split("/")[-1].replace("_", ":")
 
-def compute_samples_form(dataset_idx, dataset_name, datasets_metadata, working_dir):
+def compute_samples_form(dataset, dataset_idx, dataset_name, datasets_metadata, working_dir):
     samples = pd.DataFrame(
         data={
             "name":"Please enter a sample name", 
@@ -32,6 +38,17 @@ def compute_samples_form(dataset_idx, dataset_name, datasets_metadata, working_d
     )
     if "samples" in datasets_metadata[dataset_name]:
         samples = datasets_metadata[dataset_name]["samples"]
+    else:
+        dataset_df = dataset
+        print("dataset_df: ", dataset_df)
+        #datasets_metadata[dataset_name]["samples"] = samples
+        samples["name"] = getcol(dataset_df, "Sample", "")
+        samples["species"] = getcol(dataset_df, "Species", "")
+        samples["tissue"] = getcol(dataset_df, "Tissue", "")
+        samples["cell_type"] = getcol(dataset_df, "CellType", "")
+        samples["disease"] = getcol(dataset_df, "Disease", "")
+        samples["custom"] = getcol(dataset_df, "Custom", "")
+        datasets_metadata[dataset_name]["samples"] = samples
     st.markdown("## Samples")
     st.write(samples)
     for sample_idx in range(len(samples)):
@@ -46,13 +63,14 @@ def compute_samples_form(dataset_idx, dataset_name, datasets_metadata, working_d
         with st.form(f"sample-{dataset_idx}-{sample_idx}-species", clear_on_submit=False):
             species = sample["species"]
             st.markdown("<small>Species</small>", unsafe_allow_html=True)
-            species_input = semlookp_autocomplete(samples["species"][0], ontologies="ncit", rows=1, allow_custom_terms=True, key="species-input-autocomplete")
+            species_input = semlookp_autocomplete(samples["species"][0], ontologies="ncit,ncbitaxon", rows=1, allow_custom_terms=True, key="species-input-autocomplete")
+            st.write(samples["species"])
             add_species = st.form_submit_button("Add")
             if(add_species):
                 if(isinstance(species, str)):
                     species = [species_input]
                 else:
-                    species.append(species_input)
+                    species = species.append(species_input)
                 sample["species"] = species
         # Tissue CV term
         with st.form(f"sample-{dataset_idx}-{sample_idx}-tissue", clear_on_submit=False):
@@ -63,7 +81,7 @@ def compute_samples_form(dataset_idx, dataset_name, datasets_metadata, working_d
             if(add_tissue):
                 if(isinstance(tissue, str)):
                     tissue = [tissue_input]
-                else:               
+                else:
                     tissue.append(tissue_input)
                 sample["tissue"] = tissue
         # Cell Type CV term
