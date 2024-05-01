@@ -16,6 +16,12 @@ https://github.com/lifs-tools/lipidcompass-submissions/blob/master/submissions/L
 
 In the same directory, you will find a python code base that was used to combine the inidividual tables into the final mzTab-m file. Not all of that has been implemented here yet.
 
+Alternatively, during development, you can use docker compose to build and run the app using the `watch` feature locally: 
+
+```bash
+docker compose watch
+```
+
 ## Implementation hints
 
 Since Streamlit reevaluates the whole script from top to bottom on every change (here: one page=one script), we need to use the session state to store objects. Long running or resource intensive methods may be cached, so that they are only run once. We use the @functools.cache annotation on those methods.
