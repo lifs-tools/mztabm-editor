@@ -8,7 +8,7 @@
 
 ## Running the application
 
-    streamlit run LipidCompass_Submission_Editor.py
+    streamlit run mztabm-editor.py
 
 You can use the Brain Lipidome XLSX file for testing:
 

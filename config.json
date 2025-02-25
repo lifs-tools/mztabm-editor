@@ -6,8 +6,7 @@
         "UO": "uo",
         "NCBITaxon": "ncbitaxon",
         "BTO": "bto",
-        "PRIDE": "pride",
-        "EFO": "efo"
+        "PRIDE": "pride"
     },
     "static_cv_terms": {
         "MS:1003309": {

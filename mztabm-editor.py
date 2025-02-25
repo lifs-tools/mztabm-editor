@@ -5,8 +5,10 @@ import pandas as pd
 from pandas import isnull
 from pygoslin.parser.Parser import LipidParser
 from numpy import mean, std
+
 # mztabm class for mzTab-M files
 # supports creation of the metadata and summary table sections
+
 
 # create a python class for mzTab-M files
 class MzTabM:
@@ -15,7 +17,18 @@ class MzTabM:
     ontologies = {}
 
     """Class to create mzTab-M files from a config.json file and additional csv tables for mztab-head.csv, contacts.csv, databases.csv, instruments.csv, publications.csv, softwares.csv and id_and_quant.csv."""
-    def __init__(self, config, mztab_head, contacts, databases, instruments, publications, softwares, id_and_quant):
+
+    def __init__(
+        self,
+        config,
+        mztab_head,
+        contacts,
+        databases,
+        instruments,
+        publications,
+        softwares,
+        id_and_quant,
+    ):
         self.config = config
         self.mztab_head = mztab_head
         self.contacts = contacts
@@ -24,14 +37,26 @@ class MzTabM:
         self.publications = publications
         self.softwares = softwares
         self.id_and_quant = id_and_quant
-        self.ols_lookup = OLSLookup(self.config["ontologies"], self.config["static_cv_terms"])
+        self.ols_lookup = OLSLookup(
+            self.config["ontologies"], self.config["static_cv_terms"]
+        )
 
-    def write_mztabm(self, input_file, input_file_sheet, firstLipidColumnIndex, output_file):
-        print("Writing mzTab file to", output_file, "from", input_file, "sheet", input_file_sheet, "...")
+    def write_mztabm(
+        self, input_file, input_file_sheet, firstLipidColumnIndex, output_file
+    ):
+        print(
+            "Writing mzTab file to",
+            output_file,
+            "from",
+            input_file,
+            "sheet",
+            input_file_sheet,
+            "...",
+        )
 
-        df = pd.read_excel(input_file, input_file_sheet, index_col = "Sample")
+        df = pd.read_excel(input_file, input_file_sheet, index_col="Sample")
         df = df.reindex(index=natsorted(df.index))
-        df.insert(0, 'Sample', df.index)
+        df.insert(0, "Sample", df.index)
 
         studyVariables = df["StudyVariable"].unique()
         samples = df["Sample"]
@@ -39,7 +64,7 @@ class MzTabM:
         if "Species" in df.columns:
             sampleSpecies = df["Species"].map(lambda x: x.split("|"))
 
-        sampleTissues = {}  
+        sampleTissues = {}
         if "Tissue" in df.columns:
             sampleTissues = df["Tissue"].map(lambda x: x.split("|"))
 
@@ -57,14 +82,23 @@ class MzTabM:
 
         sample_to_sample_pos = {}
         assay_to_msrun_pos = {}
-        sample_to_assay_pos = {}    
+        sample_to_assay_pos = {}
         mztabHead = pd.read_csv(self.mztab_head, sep=",")
         mtdHead = self.create_mtd_head(mztabHead)
         self.create_id_and_quant(mtdHead)
         self.create_publications(mtdHead)
         self.create_contacts(mtdHead)
         self.create_ontologies(mtdHead)
-        self.create_samples(samples, sampleSpecies, sampleTissues, sampleDiseases, sampleCellTypes, sampleGender, mtdHead, sample_to_sample_pos)
+        self.create_samples(
+            samples,
+            sampleSpecies,
+            sampleTissues,
+            sampleDiseases,
+            sampleCellTypes,
+            sampleGender,
+            mtdHead,
+            sample_to_sample_pos,
+        )
         self.create_ms_runs(samples, mtdHead, assay_to_msrun_pos)
         self.create_assays(samples, mtdHead, assay_to_msrun_pos, sample_to_assay_pos)
         self.create_study_variables(df, studyVariables, mtdHead, sample_to_assay_pos)
@@ -76,7 +110,7 @@ class MzTabM:
         lipid_parser = LipidParser()
 
         with open(output_file, "wt") as mz:
-            mz.writelines(f'{s}\n' for s in mtdHead)
+            mz.writelines(f"{s}\n" for s in mtdHead)
             smlColums = [
                 "SMH",
                 "SML_ID",
@@ -91,15 +125,22 @@ class MzTabM:
                 "adduct_ions",
                 "reliability",
                 "best_id_confidence_measure",
-                "best_id_confidence_value"
+                "best_id_confidence_value",
             ]
-            smlColums.extend(["abundance_assay[%i]" % i for i in range(1, len(samples) + 1)])
+            smlColums.extend(
+                ["abundance_assay[%i]" % i for i in range(1, len(samples) + 1)]
+            )
             for j, studyVariableValue in enumerate(studyVariables):
-                    j += 1
-                    smlColums.extend(["abundance_study_variable[%i]" % j, "abundance_variation_study_variable[%i]" % j])
+                j += 1
+                smlColums.extend(
+                    [
+                        "abundance_study_variable[%i]" % j,
+                        "abundance_variation_study_variable[%i]" % j,
+                    ]
+                )
 
-            mz.write("\t".join(smlColums)+"\n")
-            
+            mz.write("\t".join(smlColums) + "\n")
+
             for i, lipid_name in enumerate(lipids):
                 i += 1
                 goslin_lipid_name = lipid_name
@@ -111,11 +152,15 @@ class MzTabM:
                 sv_assay_values = []
                 for j, studyVariableValue in enumerate(studyVariables):
                     j += 1
-                    sampleIds = df[df["StudyVariable"]==studyVariableValue]["Sample"]
-                    sv_mean = str(mean(df.loc[sampleIds, lipid_name])).replace("nan", "null")
-                    sv_std = str(std(df.loc[sampleIds, lipid_name])).replace("nan", "null")
+                    sampleIds = df[df["StudyVariable"] == studyVariableValue]["Sample"]
+                    sv_mean = str(mean(df.loc[sampleIds, lipid_name])).replace(
+                        "nan", "null"
+                    )
+                    sv_std = str(std(df.loc[sampleIds, lipid_name])).replace(
+                        "nan", "null"
+                    )
                     sv_assay_values.extend([sv_mean, sv_std])
-                
+
                 sv_assay_values_str = "\t".join(sv_assay_values)
                 try:
                     lipid = lipid_parser.parse(lipid_name)
@@ -124,8 +169,18 @@ class MzTabM:
                     theoretical_neutral_mass = f"{round(lipid.get_mass(),4):.4f}"
                 except:
                     pass
-                
-                mz.write("SML	%i	null	%s	%s	null	null	null	null	%s	null	3	[MS,MS:1002890,fragmentation score,]	1.0	%s	%s\n" % (i, normalized_lipid_name, goslin_lipid_name, theoretical_neutral_mass, concentrations, sv_assay_values_str))
+
+                mz.write(
+                    "SML	%i	null	%s	%s	null	null	null	null	%s	null	3	[MS,MS:1002890,fragmentation score,]	1.0	%s	%s\n"
+                    % (
+                        i,
+                        normalized_lipid_name,
+                        goslin_lipid_name,
+                        theoretical_neutral_mass,
+                        concentrations,
+                        sv_assay_values_str,
+                    )
+                )
 
     def create_databases(self, mtdHead):
         databases = pd.read_csv(self.databases, sep=",", index_col="id")
@@ -135,16 +190,18 @@ class MzTabM:
             item = f"database[{i}]"
             value = ""
             if "cv_term" in database and not isnull(database["cv_term"]):
-                dbTerm = self.ols_lookup.resolve_term(database['cv_term'], value)
+                dbTerm = self.ols_lookup.resolve_term(database["cv_term"], value)
                 if dbTerm != None:
                     databaseRows.append(f"MTD\t{item}\t{dbTerm}")
                 else:
                     databaseRows.append(f"MTD\t{item}\t{database['cv_term']}")
             elif "name" in database and not isnull(database["name"]):
-                databaseRows.append(f"MTD\t{item}\t[,,{self.ols_lookup.quote_term_name(database['name'])},{value}]")
+                databaseRows.append(
+                    f"MTD\t{item}\t[,,{self.ols_lookup.quote_term_name(database['name'])},{value}]"
+                )
             else:
-                databaseRows.append(f"MTD\t{item}\t[,,\"no database\",null]")
-            
+                databaseRows.append(f'MTD\t{item}\t[,,"no database",null]')
+
             if "prefix" in database and not isnull(database["prefix"]):
                 databaseRows.append(f"MTD\t{item}-prefix\t{database['prefix']}")
             if "version" in database and not isnull(database["version"]):
@@ -167,10 +224,14 @@ class MzTabM:
             if "value" in software and not isnull(software["value"]):
                 value = software["value"]
             if "cv_term" in software and not isnull(software["cv_term"]):
-                softwareRows.append(f"MTD\t{item}\t{self.ols_lookup.resolve_term(software['cv_term'], value)}")
+                softwareRows.append(
+                    f"MTD\t{item}\t{self.ols_lookup.resolve_term(software['cv_term'], value)}"
+                )
             elif "name" in software and not isnull(software["name"]):
-                softwareRows.append(f"MTD\t{item}\t[,,{self.ols_lookup.quote_term_name(software['name'])},{value}]")
-            
+                softwareRows.append(
+                    f"MTD\t{item}\t[,,{self.ols_lookup.quote_term_name(software['name'])},{value}]"
+                )
+
             if "setting" in software and not isnull(software["setting"]):
                 for setting in software["setting"].split("|"):
                     softwareRows.append(f"MTD\t{item}-setting\t{setting}")
@@ -186,13 +247,21 @@ class MzTabM:
             item = f"instrument[{i}]"
             value = ""
             if "name" in instrument and not isnull(instrument["name"]):
-                instrumentRows.append(f"MTD\t{item}-name\t{self.ols_lookup.resolve_term(instrument['name'])}")
+                instrumentRows.append(
+                    f"MTD\t{item}-name\t{self.ols_lookup.resolve_term(instrument['name'])}"
+                )
             if "source" in instrument and not isnull(instrument["source"]):
-                instrumentRows.append(f"MTD\t{item}-source\t{self.ols_lookup.resolve_term(instrument['source'])}")
+                instrumentRows.append(
+                    f"MTD\t{item}-source\t{self.ols_lookup.resolve_term(instrument['source'])}"
+                )
             if "analyzer" in instrument and not isnull(instrument["analyzer"]):
-                instrumentRows.append(f"MTD\t{item}-analyzer\t{self.ols_lookup.resolve_term(instrument['analyzer'])}")
+                instrumentRows.append(
+                    f"MTD\t{item}-analyzer\t{self.ols_lookup.resolve_term(instrument['analyzer'])}"
+                )
             if "detector" in instrument and not isnull(instrument["detector"]):
-                instrumentRows.append(f"MTD\t{item}-detector\t{self.ols_lookup.resolve_term(instrument['detector'])}")
+                instrumentRows.append(
+                    f"MTD\t{item}-detector\t{self.ols_lookup.resolve_term(instrument['detector'])}"
+                )
 
         mtdHead.extend(instrumentRows)
 
@@ -200,10 +269,18 @@ class MzTabM:
         studyVariableRows = []
         for i, studyVariableValue in enumerate(studyVariables):
             i += 1
-            sampleIds = df[df["StudyVariable"]==studyVariableValue]["Sample"].astype(str).tolist()
-            assayIds = "|".join(["assay["+str(sample_to_assay_pos[x])+"]" for x in sampleIds])
+            sampleIds = (
+                df[df["StudyVariable"] == studyVariableValue]["Sample"]
+                .astype(str)
+                .tolist()
+            )
+            assayIds = "|".join(
+                ["assay[" + str(sample_to_assay_pos[x]) + "]" for x in sampleIds]
+            )
             studyVariableRows.append(f"MTD\tstudy_variable[{i}]\t{studyVariableValue}")
-            studyVariableRows.append(f"MTD\tstudy_variable[{i}]-description\t{studyVariableValue}")
+            studyVariableRows.append(
+                f"MTD\tstudy_variable[{i}]-description\t{studyVariableValue}"
+            )
             studyVariableRows.append(f"MTD\tstudy_variable[{i}]-assay_refs\t{assayIds}")
 
         mtdHead.extend(studyVariableRows)
@@ -215,21 +292,49 @@ class MzTabM:
             sample_to_assay_pos[sample] = i
             assayRows.append(f"MTD\tassay[{i}]\tAssay for Sample no {sample}")
             assayRows.append(f"MTD\tassay[{i}]-sample_ref\tsample[{i}]")
-            assayRows.append(f"MTD\tassay[{i}]-ms_run_ref\tms_run[{assay_to_msrun_pos[sample]}]")
+            assayRows.append(
+                f"MTD\tassay[{i}]-ms_run_ref\tms_run[{assay_to_msrun_pos[sample]}]"
+            )
 
         mtdHead.extend(assayRows)
 
-    def create_ms_runs(self, samples, mtdHead, assay_to_msrun_pos):
+    def create_ms_runs(self, samples, mtdHead, assay_to_msrun_pos, polarity="positive"):
         msRunRows = []
         for i, sample in enumerate(samples):
             i += 1
             assay_to_msrun_pos[sample] = i
-            msRunRows.append(f"MTD\tms_run[{i}]-location\tfile://Sample_no_{sample}.mzML")
-            msRunRows.append(f"MTD\tms_run[{i}]-scan_polarity[1]\t[MS, MS:1000130, positive scan, ]")
-            
+            msRunRows.append(
+                f"MTD\tms_run[{i}]-location\tfile://Sample_no_{sample}.mzML"
+            )
+            if polarity == "positive":
+                msRunRows.append(
+                    f"MTD\tms_run[{i}]-scan_polarity[1]\t[MS, MS:1000130, positive scan, ]"
+                )
+            elif polarity == "negative":
+                msRunRows.append(
+                    f"MTD\tms_run[{i}]-scan_polarity[1]\t[MS, MS:1000129, negative scan, ]"
+                )
+            elif polarity == "both":
+                msRunRows.append(
+                    f"MTD\tms_run[{i}]-scan_polarity[1]\t[MS, MS:1000130, positive scan, ]"
+                )
+                msRunRows.append(
+                    f"MTD\tms_run[{i}]-scan_polarity[2]\t[MS, MS:1000129, negative scan, ]"
+                )
+
         mtdHead.extend(msRunRows)
 
-    def create_samples(self, samples, sampleSpecies, sampleTissues, sampleDiseases, sampleCellTypes, sampleGender, mtdHead, sample_to_sample_pos):
+    def create_samples(
+        self,
+        samples,
+        sampleSpecies,
+        sampleTissues,
+        sampleDiseases,
+        sampleCellTypes,
+        sampleGender,
+        mtdHead,
+        sample_to_sample_pos,
+    ):
         sampleRows = []
 
         for i, sample in enumerate(samples):
@@ -239,23 +344,33 @@ class MzTabM:
             if len(sampleSpecies) > 0:
                 for j, species in enumerate(sampleSpecies[sample]):
                     j += 1
-                    sampleRows.append(f"MTD\tsample[{i}]-species[{j}]\t{self.ols_lookup.resolve_term(species)}")
+                    sampleRows.append(
+                        f"MTD\tsample[{i}]-species[{j}]\t{self.ols_lookup.resolve_term(species)}"
+                    )
             if len(sampleTissues) > 0:
                 for j, tissue in enumerate(sampleTissues[sample]):
                     j += 1
-                    sampleRows.append(f"MTD\tsample[{i}]-tissue[{j}]\t{self.ols_lookup.resolve_term(tissue)}")
+                    sampleRows.append(
+                        f"MTD\tsample[{i}]-tissue[{j}]\t{self.ols_lookup.resolve_term(tissue)}"
+                    )
             if len(sampleDiseases) > 0:
                 for j, disease in enumerate(sampleDiseases[sample]):
                     j += 1
-                    sampleRows.append(f"MTD\tsample[{i}]-disease[{j}]\t{self.ols_lookup.resolve_term(disease)}")
+                    sampleRows.append(
+                        f"MTD\tsample[{i}]-disease[{j}]\t{self.ols_lookup.resolve_term(disease)}"
+                    )
             if len(sampleCellTypes) > 0:
                 for j, cellType in enumerate(sampleCellTypes[sample]):
                     j += 1
-                    sampleRows.append(f"MTD\tsample[{i}]-cell_type[{j}]\t{self.ols_lookup.resolve_term(cellType)}")
+                    sampleRows.append(
+                        f"MTD\tsample[{i}]-cell_type[{j}]\t{self.ols_lookup.resolve_term(cellType)}"
+                    )
             if len(sampleGender) > 0:
                 for j, gender in enumerate(sampleGender[sample]):
                     j += 1
-                    sampleRows.append(f"MTD\tsample[{i}]-custom[{j}]\t[NCIT, NCIT:C17357, Gender, {self.ols_lookup.resolve_term_name(gender)}]")
+                    sampleRows.append(
+                        f"MTD\tsample[{i}]-custom[{j}]\t[NCIT, NCIT:C17357, Gender, {self.ols_lookup.resolve_term_name(gender)}]"
+                    )
 
         mtdHead.extend(sampleRows)
 
@@ -264,13 +379,19 @@ class MzTabM:
         for i, ontology in enumerate(self.ontologies):
             i += 1
             ontologyRows.append(f"MTD\tcv[{i}]-label\t{ontology}")
-            ontologyRows.append(f"MTD\tcv[{i}]-uri\t{self.ontologies[ontology].config.id}")
+            ontologyRows.append(
+                f"MTD\tcv[{i}]-uri\t{self.ontologies[ontology].config.id}"
+            )
             if self.ontologies[ontology].config.version == None:
                 ontUpdDate = self.ontologies[ontology].updated.split("T")[0]
                 ontologyRows.append(f"MTD\tcv[{i}]-version\t{ontUpdDate}")
             else:
-                ontologyRows.append(f"MTD\tcv[{i}]-version\t{self.ontologies[ontology].config.version}")
-            ontologyRows.append(f"MTD\tcv[{i}]-full_name\t{self.ontologies[ontology].title}")
+                ontologyRows.append(
+                    f"MTD\tcv[{i}]-version\t{self.ontologies[ontology].config.version}"
+                )
+            ontologyRows.append(
+                f"MTD\tcv[{i}]-full_name\t{self.ontologies[ontology].title}"
+            )
 
         mtdHead.extend(ontologyRows)
 
@@ -310,7 +431,9 @@ class MzTabM:
         for i, quantification in quantifications.iterrows():
             for column in quantification.keys():
                 print(quantification[column])
-                quantificationRows.append(f"MTD\t{column}\t{self.ols_lookup.resolve_term(quantification[column])}")
+                quantificationRows.append(
+                    f"MTD\t{column}\t{self.ols_lookup.resolve_term(quantification[column])}"
+                )
 
         mtdHead.extend(quantificationRows)
 
